@@ -1,10 +1,8 @@
 use num_rational::*;
 
-
 /// This Pos type is expected to be generate enough to allow the user
 /// to cast into and out of their own type, such as from the euclid crate.
 pub type Pos = (isize, isize);
-
 
 /// Compute FOV information for a given position using the shadow mapping algorithm.
 ///
@@ -20,9 +18,10 @@ pub type Pos = (isize, isize);
 /// I tried to write a nicer API which would modify the map as a separate user
 /// data, but I can't work out the lifetime annotations.
 pub fn compute_fov<F, G>(origin: Pos, is_blocking: &mut F, mark_visible: &mut G)
-    where F: FnMut(Pos) -> bool,
-          G: FnMut(Pos, bool), {
-
+where
+    F: FnMut(Pos) -> bool,
+    G: FnMut(Pos, bool),
+{
     mark_visible(origin, true);
 
     for i in 0..4 {
@@ -34,9 +33,11 @@ pub fn compute_fov<F, G>(origin: Pos, is_blocking: &mut F, mark_visible: &mut G)
     }
 }
 
-fn scan<F, G>(row: Row, quadrant: Quadrant, is_blocking: &mut F, mark_visible: &mut G) 
-    where F: FnMut(Pos) -> bool,
-          G: FnMut(Pos, bool), {
+fn scan<F, G>(row: Row, quadrant: Quadrant, is_blocking: &mut F, mark_visible: &mut G)
+where
+    F: FnMut(Pos) -> bool,
+    G: FnMut(Pos, bool),
+{
     let mut prev_tile = None;
 
     let mut row = row;
@@ -51,8 +52,7 @@ fn scan<F, G>(row: Row, quadrant: Quadrant, is_blocking: &mut F, mark_visible: &
         let pos = quadrant.transform(tile);
         if tile_is_wall || is_symmetric(row, tile) {
             mark_visible(pos, true);
-        }
-        else {
+        } else {
             mark_visible(pos, false);
         }
 
@@ -70,13 +70,11 @@ fn scan<F, G>(row: Row, quadrant: Quadrant, is_blocking: &mut F, mark_visible: &
 
         prev_tile = Some(tile);
     }
-        
+
     if prev_tile.map_or(false, |tile| !is_blocking(quadrant.transform(tile))) {
         scan(row.next(), quadrant, is_blocking, mark_visible);
     }
 }
-
-
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
 enum Cardinal {
@@ -102,10 +100,14 @@ struct Quadrant {
 
 impl Quadrant {
     fn new(cardinal: Cardinal, origin: Pos) -> Quadrant {
-        return Quadrant { cardinal, ox: origin.0, oy: origin.1 };
+        return Quadrant {
+            cardinal,
+            ox: origin.0,
+            oy: origin.1,
+        };
     }
 
-    fn transform(&self, tile: Pos) -> Pos{
+    fn transform(&self, tile: Pos) -> Pos {
         let (row, col) = tile;
 
         match self.cardinal {
@@ -137,10 +139,14 @@ struct Row {
 
 impl Row {
     fn new(depth: isize, start_slope: Rational, end_slope: Rational) -> Row {
-        return Row { depth, start_slope, end_slope, };
+        return Row {
+            depth,
+            start_slope,
+            end_slope,
+        };
     }
 
-    fn tiles(&self) -> impl Iterator<Item=Pos> {
+    fn tiles(&self) -> impl Iterator<Item = Pos> {
         let depth_times_start = Rational::new(self.depth, 1) * self.start_slope;
         let depth_times_end = Rational::new(self.depth, 1) * self.end_slope;
 
@@ -199,7 +205,10 @@ fn matching_visible(expected: Vec<Vec<usize>>, visible: Vec<(isize, isize)>) {
             } else {
                 print!("0");
             }
-            assert_eq!(expected[y][x] == 1, visible.contains(&(x as isize, y as isize)));
+            assert_eq!(
+                expected[y][x] == 1,
+                visible.contains(&(x as isize, y as isize))
+            );
         }
         println!();
     }
@@ -209,41 +218,12 @@ fn matching_visible(expected: Vec<Vec<usize>>, visible: Vec<(isize, isize)>) {
 fn test_expansive_walls() {
     let origin = (1, 2);
 
-    let tiles = vec!(vec!(1, 1, 1, 1, 1, 1, 1),
-                     vec!(1, 0, 0, 0, 0, 0, 1),
-                     vec!(1, 0, 0, 0, 0, 0, 1),
-                     vec!(1, 1, 1, 1, 1, 1, 1));
-
-    let mut is_blocking = |pos: Pos| {
-        return  !inside_map(pos, &tiles) || tiles[pos.1 as usize][pos.0 as usize] == 1;
-    };
-
-    let mut visible = Vec::new();
-    let mut mark_visible = |pos: Pos, active: bool| {
-        if inside_map(pos, &tiles) && !visible.contains(&pos) {
-            visible.push(pos);
-        }
-    };
-
-    compute_fov(origin, &mut is_blocking, &mut mark_visible);
-
-    let expected = vec!(vec!(1, 1, 1, 1, 1, 1, 1),
-                        vec!(1, 1, 1, 1, 1, 1, 1),
-                        vec!(1, 1, 1, 1, 1, 1, 1),
-                        vec!(1, 1, 1, 1, 1, 1, 1));
-    matching_visible(expected, visible);
-}
-
-
-#[test]
-fn test_expanding_shadows() {
-    let origin = (0, 0);
-
-    let tiles = vec!(vec!(0, 0, 0, 0, 0, 0, 0),
-                     vec!(0, 1, 0, 0, 0, 0, 0),
-                     vec!(0, 0, 0, 0, 0, 0, 0),
-                     vec!(0, 0, 0, 0, 0, 0, 0),
-                     vec!(0, 0, 0, 0, 0, 0, 0));
+    let tiles = vec![
+        vec![1, 1, 1, 1, 1, 1, 1],
+        vec![1, 0, 0, 0, 0, 0, 1],
+        vec![1, 0, 0, 0, 0, 0, 1],
+        vec![1, 1, 1, 1, 1, 1, 1],
+    ];
 
     let mut is_blocking = |pos: Pos| {
         return !inside_map(pos, &tiles) || tiles[pos.1 as usize][pos.0 as usize] == 1;
@@ -258,11 +238,47 @@ fn test_expanding_shadows() {
 
     compute_fov(origin, &mut is_blocking, &mut mark_visible);
 
-    let expected = vec!(vec!(1, 1, 1, 1, 1, 1, 1),
-                        vec!(1, 1, 1, 1, 1, 1, 1),
-                        vec!(1, 1, 0, 0, 1, 1, 1),
-                        vec!(1, 1, 0, 0, 0, 0, 1),
-                        vec!(1, 1, 1, 0, 0, 0, 0));
+    let expected = vec![
+        vec![1, 1, 1, 1, 1, 1, 1],
+        vec![1, 1, 1, 1, 1, 1, 1],
+        vec![1, 1, 1, 1, 1, 1, 1],
+        vec![1, 1, 1, 1, 1, 1, 1],
+    ];
+    matching_visible(expected, visible);
+}
+
+#[test]
+fn test_expanding_shadows() {
+    let origin = (0, 0);
+
+    let tiles = vec![
+        vec![0, 0, 0, 0, 0, 0, 0],
+        vec![0, 1, 0, 0, 0, 0, 0],
+        vec![0, 0, 0, 0, 0, 0, 0],
+        vec![0, 0, 0, 0, 0, 0, 0],
+        vec![0, 0, 0, 0, 0, 0, 0],
+    ];
+
+    let mut is_blocking = |pos: Pos| {
+        return !inside_map(pos, &tiles) || tiles[pos.1 as usize][pos.0 as usize] == 1;
+    };
+
+    let mut visible = Vec::new();
+    let mut mark_visible = |pos: Pos, active: bool| {
+        if inside_map(pos, &tiles) && !visible.contains(&pos) {
+            visible.push(pos);
+        }
+    };
+
+    compute_fov(origin, &mut is_blocking, &mut mark_visible);
+
+    let expected = vec![
+        vec![1, 1, 1, 1, 1, 1, 1],
+        vec![1, 1, 1, 1, 1, 1, 1],
+        vec![1, 1, 0, 0, 1, 1, 1],
+        vec![1, 1, 0, 0, 0, 0, 1],
+        vec![1, 1, 1, 0, 0, 0, 0],
+    ];
     matching_visible(expected, visible);
 }
 
@@ -270,14 +286,16 @@ fn test_expanding_shadows() {
 fn test_no_blind_corners() {
     let origin = (3, 0);
 
-    let tiles = vec!(vec!(0, 0, 0, 0, 0, 0, 0),
-                     vec!(1, 1, 1, 1, 0, 0, 0),
-                     vec!(0, 0, 0, 1, 0, 0, 0),
-                     vec!(0, 0, 0, 1, 0, 0, 0));
+    let tiles = vec![
+        vec![0, 0, 0, 0, 0, 0, 0],
+        vec![1, 1, 1, 1, 0, 0, 0],
+        vec![0, 0, 0, 1, 0, 0, 0],
+        vec![0, 0, 0, 1, 0, 0, 0],
+    ];
 
     let mut is_blocking = |pos: Pos| {
         let outside = (pos.1 as usize) >= tiles.len() || (pos.0 as usize) >= tiles[0].len();
-        return  outside || tiles[pos.1 as usize][pos.0 as usize] == 1;
+        return outside || tiles[pos.1 as usize][pos.0 as usize] == 1;
     };
 
     let mut visible = Vec::new();
@@ -291,9 +309,11 @@ fn test_no_blind_corners() {
 
     compute_fov(origin, &mut is_blocking, &mut mark_visible);
 
-    let expected = vec!(vec!(1, 1, 1, 1, 1, 1, 1),
-                        vec!(1, 1, 1, 1, 1, 1, 1),
-                        vec!(0, 0, 0, 0, 1, 1, 1),
-                        vec!(0, 0, 0, 0, 0, 1, 1));
+    let expected = vec![
+        vec![1, 1, 1, 1, 1, 1, 1],
+        vec![1, 1, 1, 1, 1, 1, 1],
+        vec![0, 0, 0, 0, 1, 1, 1],
+        vec![0, 0, 0, 0, 0, 1, 1],
+    ];
     matching_visible(expected, visible);
 }
