@@ -21,9 +21,9 @@ pub type Pos = (isize, isize);
 /// data, but I can't work out the lifetime annotations.
 pub fn compute_fov<F, G>(origin: Pos, is_blocking: &mut F, mark_visible: &mut G)
     where F: FnMut(Pos) -> bool,
-          G: FnMut(Pos), {
+          G: FnMut(Pos, bool), {
 
-    mark_visible(origin);
+    mark_visible(origin, true);
 
     for i in 0..4 {
         let quadrant = Quadrant::new(Cardinal::from_index(i), origin);
@@ -36,7 +36,7 @@ pub fn compute_fov<F, G>(origin: Pos, is_blocking: &mut F, mark_visible: &mut G)
 
 fn scan<F, G>(row: Row, quadrant: Quadrant, is_blocking: &mut F, mark_visible: &mut G) 
     where F: FnMut(Pos) -> bool,
-          G: FnMut(Pos), {
+          G: FnMut(Pos, bool), {
     let mut prev_tile = None;
 
     let mut row = row;
@@ -48,10 +48,12 @@ fn scan<F, G>(row: Row, quadrant: Quadrant, is_blocking: &mut F, mark_visible: &
         let prev_is_wall = prev_tile.map_or(false, |prev| is_blocking(quadrant.transform(prev)));
         let prev_is_floor = prev_tile.map_or(false, |prev| !is_blocking(quadrant.transform(prev)));
 
+        let pos = quadrant.transform(tile);
         if tile_is_wall || is_symmetric(row, tile) {
-            let pos = quadrant.transform(tile);
-
-            mark_visible(pos);
+            mark_visible(pos, true);
+        }
+        else {
+            mark_visible(pos, false);
         }
 
         if prev_is_wall && tile_is_floor {
@@ -217,7 +219,7 @@ fn test_expansive_walls() {
     };
 
     let mut visible = Vec::new();
-    let mut mark_visible = |pos: Pos| {
+    let mut mark_visible = |pos: Pos, active: bool| {
         if inside_map(pos, &tiles) && !visible.contains(&pos) {
             visible.push(pos);
         }
@@ -248,7 +250,7 @@ fn test_expanding_shadows() {
     };
 
     let mut visible = Vec::new();
-    let mut mark_visible = |pos: Pos| {
+    let mut mark_visible = |pos: Pos, active: bool| {
         if inside_map(pos, &tiles) && !visible.contains(&pos) {
             visible.push(pos);
         }
@@ -279,7 +281,7 @@ fn test_no_blind_corners() {
     };
 
     let mut visible = Vec::new();
-    let mut mark_visible = |pos: Pos| {
+    let mut mark_visible = |pos: Pos, active: bool| {
         let outside = (pos.1 as usize) >= tiles.len() || (pos.0 as usize) >= tiles[0].len();
 
         if !outside && !visible.contains(&pos) {
