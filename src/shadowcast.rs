@@ -1,8 +1,8 @@
-use num_rational::*;
+use num_rational::Rational64;
 
 /// This Pos type is expected to be generate enough to allow the user
 /// to cast into and out of their own type, such as from the euclid crate.
-pub type Pos = (isize, isize);
+pub type Pos = (i64, i64);
 
 /// Compute FOV information for a given position using the shadow mapping algorithm.
 ///
@@ -27,7 +27,7 @@ where
     for i in 0..4 {
         let quadrant = Quadrant::new(Cardinal::from_index(i), origin);
 
-        let first_row = Row::new(1, Rational::new(-1, 1), Rational::new(1, 1));
+        let first_row = Row::new(1, Rational64::new(-1, 1), Rational64::new(1, 1));
 
         scan(first_row, quadrant, is_blocking, mark_visible);
     }
@@ -94,8 +94,8 @@ impl Cardinal {
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
 struct Quadrant {
     cardinal: Cardinal,
-    ox: isize,
-    oy: isize,
+    ox: i64,
+    oy: i64,
 }
 
 impl Quadrant {
@@ -132,13 +132,13 @@ impl Quadrant {
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
 struct Row {
-    depth: isize,
-    start_slope: Rational,
-    end_slope: Rational,
+    depth: i64,
+    start_slope: Rational64,
+    end_slope: Rational64,
 }
 
 impl Row {
-    fn new(depth: isize, start_slope: Rational, end_slope: Rational) -> Row {
+    fn new(depth: i64, start_slope: Rational64, end_slope: Rational64) -> Row {
         return Row {
             depth,
             start_slope,
@@ -147,8 +147,8 @@ impl Row {
     }
 
     fn tiles(&self) -> impl Iterator<Item = Pos> {
-        let depth_times_start = Rational::new(self.depth, 1) * self.start_slope;
-        let depth_times_end = Rational::new(self.depth, 1) * self.end_slope;
+        let depth_times_start = Rational64::new(self.depth, 1) * self.start_slope;
+        let depth_times_end = Rational64::new(self.depth, 1) * self.end_slope;
 
         let min_col = round_ties_up(depth_times_start);
 
@@ -164,30 +164,30 @@ impl Row {
     }
 }
 
-fn slope(tile: Pos) -> Rational {
+fn slope(tile: Pos) -> Rational64 {
     let (row_depth, col) = tile;
-    return Rational::new(2 * col - 1, 2 * row_depth);
+    return Rational64::new(2 * col - 1, 2 * row_depth);
 }
 
 fn is_symmetric(row: Row, tile: Pos) -> bool {
     let (_row_depth, col) = tile;
 
-    let depth_times_start = Rational::new(row.depth, 1) * row.start_slope;
-    let depth_times_end = Rational::new(row.depth, 1) * row.end_slope;
+    let depth_times_start = Rational64::new(row.depth, 1) * row.start_slope;
+    let depth_times_end = Rational64::new(row.depth, 1) * row.end_slope;
 
-    let col_rat = Rational::new(col, 1);
+    let col_rat = Rational64::new(col, 1);
 
     let symmetric = col_rat >= depth_times_start && col_rat <= depth_times_end;
 
     return symmetric;
 }
 
-fn round_ties_up(n: Rational) -> isize {
-    return (n + Rational::new(1, 2)).floor().to_integer();
+fn round_ties_up(n: Rational64) -> i64 {
+    return (n + Rational64::new(1, 2)).floor().to_integer();
 }
 
-fn round_ties_down(n: Rational) -> isize {
-    return (n - Rational::new(1, 2)).ceil().to_integer();
+fn round_ties_down(n: Rational64) -> i64 {
+    return (n - Rational64::new(1, 2)).ceil().to_integer();
 }
 
 #[cfg(test)]
@@ -197,18 +197,15 @@ fn inside_map<T>(pos: Pos, map: &Vec<Vec<T>>) -> bool {
 }
 
 #[cfg(test)]
-fn matching_visible(expected: Vec<Vec<usize>>, visible: Vec<(isize, isize)>) {
+fn matching_visible(expected: Vec<Vec<usize>>, visible: Vec<(i64, i64)>) {
     for y in 0..expected.len() {
         for x in 0..expected[0].len() {
-            if visible.contains(&(x as isize, y as isize)) {
+            if visible.contains(&(x as i64, y as i64)) {
                 print!("1");
             } else {
                 print!("0");
             }
-            assert_eq!(
-                expected[y][x] == 1,
-                visible.contains(&(x as isize, y as isize))
-            );
+            assert_eq!(expected[y][x] == 1, visible.contains(&(x as i64, y as i64)));
         }
         println!();
     }
@@ -230,7 +227,7 @@ fn test_expansive_walls() {
     };
 
     let mut visible = Vec::new();
-    let mut mark_visible = |pos: Pos, active: bool| {
+    let mut mark_visible = |pos: Pos, _active: bool| {
         if inside_map(pos, &tiles) && !visible.contains(&pos) {
             visible.push(pos);
         }
@@ -264,7 +261,7 @@ fn test_expanding_shadows() {
     };
 
     let mut visible = Vec::new();
-    let mut mark_visible = |pos: Pos, active: bool| {
+    let mut mark_visible = |pos: Pos, _active: bool| {
         if inside_map(pos, &tiles) && !visible.contains(&pos) {
             visible.push(pos);
         }
@@ -299,7 +296,7 @@ fn test_no_blind_corners() {
     };
 
     let mut visible = Vec::new();
-    let mut mark_visible = |pos: Pos, active: bool| {
+    let mut mark_visible = |pos: Pos, _active: bool| {
         let outside = (pos.1 as usize) >= tiles.len() || (pos.0 as usize) >= tiles[0].len();
 
         if !outside && !visible.contains(&pos) {
