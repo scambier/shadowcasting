@@ -26,9 +26,7 @@ where
 
     for i in 0..4 {
         let quadrant = Quadrant::new(Cardinal::from_index(i), origin);
-
         let first_row = Row::new(1, Rational64::new(-1, 1), Rational64::new(1, 1));
-
         scan(first_row, quadrant, is_blocking, mark_visible);
     }
 }

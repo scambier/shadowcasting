@@ -7,6 +7,8 @@ It is a very nice article, with visuals and explaination.
 This implementation is tested against the examples in the article, and 
 produces identical results. 
 
+This repository is a fork from https://github.com/nsmryan/shadowcasting to fix this issue: https://blog.scambier.xyz/posts/improving-symmetric-shadowcasting-for-tile-bitmasking/
+
 
 ## Usage
 The use of this crate is simple- there is only a single function exposed:
